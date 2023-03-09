@@ -5,6 +5,7 @@ public class BubbleSort {
         int array[] = new int[] { 23, 1, 78, 45, 46, 90, 2, 12, 75, 0 };
 
         for (c = 0; c < (n - 1); c++) {
+            char k;
             for (d = 0; d < n - c - 1; d++) {
                 if (array[d] > array[d + 1]) /* For descending order use < */
                 {

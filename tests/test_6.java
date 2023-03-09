@@ -10,8 +10,10 @@ class PalindromeExample2
       int length = original.length();   
       for ( int i = length - 1; i >= 0; i-- )  
          reverse = reverse + original.charAt(i);  
-      if (original.equals(reverse))  
+      if (original.equals(reverse)){
+         int k =0;  
          System.out.println("Entered string/number is a palindrome.");  
+      }
       else  
          System.out.println("Entered string/number isn't a palindrome.");   
    }  

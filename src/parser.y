@@ -13,8 +13,11 @@ vector<pair<string,vector<int>>> nodes;
 int startNode;
 
 // Symbol Table
-map<string,string> symbols;
-string curr;
+vector<map<string,string>> block_table(1000);
+map<string,string> symbol_table;
+int block_count = 1;
+int mblock = 0;
+string curr_type;
 
 
 void yyerror(char const *);
@@ -417,15 +420,15 @@ numeric_type:
 | floating_point_type			{$$=createNode("numeric_type");if($1 !=-1)addChild($$,$1);}
 ;
 integral_type:
-  TOK_byte			{$$=createNode("integral_type");addChild($$,createNode($1));}
-| TOK_short			{$$=createNode("integral_type");addChild($$,createNode($1));}
-| TOK_int			{$$=createNode("integral_type");addChild($$,createNode($1));}
-| TOK_long			{$$=createNode("integral_type");addChild($$,createNode($1));}
-| TOK_char			{$$=createNode("integral_type");addChild($$,createNode($1));}
+  TOK_byte			{$$=createNode("integral_type");addChild($$,createNode($1)); curr_type = "byte";}
+| TOK_short			{$$=createNode("integral_type");addChild($$,createNode($1)); curr_type = "short";}
+| TOK_int			{$$=createNode("integral_type");addChild($$,createNode($1)); curr_type = "int";}
+| TOK_long			{$$=createNode("integral_type");addChild($$,createNode($1)); curr_type = "long";}
+| TOK_char			{$$=createNode("integral_type");addChild($$,createNode($1)); curr_type = "char";}
 ;
 floating_point_type:
-  TOK_float			{$$=createNode("floating_point_type");addChild($$,createNode($1));}
-| TOK_double			{$$=createNode("floating_point_type");addChild($$,createNode($1));}
+  TOK_float			{$$=createNode("floating_point_type");addChild($$,createNode($1)); curr_type = "float";}
+| TOK_double			{$$=createNode("floating_point_type");addChild($$,createNode($1)); curr_type = "double";}
 ;
 reference_type:
   class_or_interface_type			{$$=createNode("reference_type");if($1 !=-1)addChild($$,$1);}
@@ -485,8 +488,8 @@ wildcard_bounds:
 
   /* Names */
 un_name:
-  TOK_IDENTIFIER			{$$=createNode("un_name");addChild($$,createNode($1));}
-| un_name TOK_46 TOK_IDENTIFIER			{$$=createNode("un_name");if($1 !=-1)addChild($$,$1);addChild($$,createNode($2));addChild($$,createNode($3));}
+  TOK_IDENTIFIER			{$$=createNode("un_name");addChild($$,createNode($1)); curr_type = string($1);}
+| un_name TOK_46 TOK_IDENTIFIER			{$$=createNode("un_name");if($1 !=-1)addChild($$,$1);addChild($$,createNode($2));addChild($$,createNode($3)); curr_type = string($3);}
 ;
 
 
@@ -623,7 +626,7 @@ eq_variable_initializer.opt:
 | /*empty*/			{$$=-1;}
 ;
 variable_declarator_id:
-  TOK_IDENTIFIER dims.opt			{$$=createNode("variable_declarator_id");addChild($$,createNode($1));if($2 !=-1)addChild($$,$2);}
+  TOK_IDENTIFIER dims.opt			{$$=createNode("variable_declarator_id");addChild($$,createNode($1));if($2 !=-1)addChild($$,$2);block_table[block_count][$1] = curr_type; }
 ;
 dims.opt:
   dims			{$$=createNode("dims.opt");if($1 !=-1)addChild($$,$1);}
@@ -650,10 +653,10 @@ throws.opt:
 ;
 result:
   type			{$$=createNode("result");if($1 !=-1)addChild($$,$1);}
-| TOK_void			{$$=createNode("result");addChild($$,createNode($1));}
+| TOK_void			{$$=createNode("result");addChild($$,createNode($1));curr_type = "void";}
 ;
 method_declarator:
-  TOK_IDENTIFIER TOK_40 formal_parameter_list.opt TOK_41 dims.opt			{$$=createNode("method_declarator");addChild($$,createNode($1));addChild($$,createNode($2));if($3 !=-1)addChild($$,$3);addChild($$,createNode($4));if($5 !=-1)addChild($$,$5);}
+  TOK_IDENTIFIER TOK_40 formal_parameter_list.opt TOK_41 dims.opt			{$$=createNode("method_declarator");addChild($$,createNode($1));addChild($$,createNode($2));if($3 !=-1)addChild($$,$3);addChild($$,createNode($4));if($5 !=-1)addChild($$,$5); block_table[block_count][$1] = "<>";}
 ;
 formal_parameter_list.opt:
   formal_parameter_list			{$$=createNode("formal_parameter_list.opt");if($1 !=-1)addChild($$,$1);}
@@ -852,7 +855,7 @@ com_variable_initializer.multiopt:
 	/* blocks, statements, and patterns */
 
 block:
-  TOK_123 block_statements.opt TOK_125			{$$=createNode("block");addChild($$,createNode($1));if($2 !=-1)addChild($$,$2);addChild($$,createNode($3));}
+  TOK_123 block_statements.opt TOK_125			{$$=createNode("block");addChild($$,createNode($1));if($2 !=-1)addChild($$,$2);addChild($$,createNode($3)); block_count++; }
 ;
 block_statements:
   block_statement block_statement.multiopt			{$$=createNode("block_statements");if($1 !=-1)addChild($$,$1);if($2 !=-1)addChild($$,$2);}
@@ -1425,6 +1428,21 @@ void build_graph() {
 	}
 
 	cout << "}" << endl;
+  fclose(stdout);
+}
+
+void print_symbol_table(){
+  freopen("symbole_table.txt", "w", stdout);
+  cout<<"Symbol      Type\n";
+  for(int i = 0; i < block_count-1; i++) {
+    for(auto itr = block_table[i].begin(); itr != block_table[i].end(); itr++) {
+      cout<< itr->first <<" "<<itr->second<<"\n";
+    }
+    cout<< "--------------------------------\n";
+  }
+  cout<<"Number of Blocks : "<<block_count<<"\n";
+  fclose(stdout);
+  return;
 }
 
 int main(int argc, char *argv[]) {
@@ -1434,5 +1452,6 @@ int main(int argc, char *argv[]) {
 	fclose(yyin);
 	// fix_ast(startNode);
 	build_graph();
+  // print_symbol_table();
 	return 0;
 }

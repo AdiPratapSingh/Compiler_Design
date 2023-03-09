@@ -14,10 +14,18 @@ int startNode;
 
 // Symbol Table
 vector<map<string,string>> block_table(1000);
+vector<map<string,string>> cum_table;
 map<string,string> symbol_table;
-int block_count = 1;
-int mblock = 0;
+int current_stack = 0;
 string curr_type;
+string modifier = "public";
+string parent_class = "";
+int class_dec_flag = 0;
+int method_dec_flag = 0;
+
+vector<string> mod_list;
+string lhs_type;
+string rhs_type;
 
 
 void yyerror(char const *);
@@ -144,241 +152,241 @@ int yylex (YYSTYPE*);
 %token <s> TOK_124124 "||"
 %token <s> TOK_125 "}"
 %token <s> TOK_126 "~"
-%type<i> IDENTIFIER.opt
-%type<i> additional_bound
-%type<i> additional_bound.multiopt
-%type<i> additive_expression
-%type<i> and_expression
-%type<i> argument_list
-%type<i> argument_list.opt
-%type<i> array_access
-%type<i> array_creation_expression
-%type<i> array_initializer
-%type<i> array_type
-%type<i> assert_statement
-%type<i> assignment
-%type<i> assignment_expression
-%type<i> assignment_operator
-%type<i> basic_for_statement
-%type<i> basic_for_statement_no_short_if
-%type<i> block
-%type<i> block_statement
-%type<i> block_statement.multiopt
-%type<i> block_statements
-%type<i> block_statements.opt
-%type<i> break_statement
-%type<i> case_constant
-%type<i> cast_expression
-%type<i> catch_clause
-%type<i> catch_clause.multiopt
-%type<i> catch_formal_parameter
-%type<i> catch_type
-%type<i> catches
-%type<i> catches.opt
-%type<i> class_body
-%type<i> class_body.opt
-%type<i> class_body_declaration
-%type<i> class_body_declaration.multiopt
-%type<i> class_declaration
-%type<i> class_extends
-%type<i> class_extends.opt
-%type<i> class_implements
-%type<i> class_implements.opt
-%type<i> class_instance_creation_expression
-%type<i> class_member_declaration
-%type<i> class_or_interface_type
-%type<i> class_permits
-%type<i> class_permits.opt
-%type<i> com.opt
-%type<i> com_case_constant.multiopt
-%type<i> com_enum_constant.multiopt
-%type<i> com_exception_type.multiopt
-%type<i> com_expression.multiopt
-%type<i> com_formal_parameter.multiopt
-%type<i> com_interface_type.multiopt
-%type<i> com_record_component.multiopt
-%type<i> com_statement_expression.multiopt
-%type<i> com_type_name.multiopt
-%type<i> com_type_parameter.multiopt
-%type<i> com_variable_declarator.multiopt
-%type<i> com_variable_initializer.multiopt
-%type<i> compact_constructor_declaration
-%type<i> compilation_unit
-%type<i> conditional_and_expression
-%type<i> conditional_expression
-%type<i> conditional_or_expression
-%type<i> constant_declaration
-%type<i> constructor_body
-%type<i> constructor_declaration
-%type<i> constructor_declarator
-%type<i> continue_statement
-%type<i> dim_expr
-%type<i> dim_expr.multiopt
-%type<i> dim_exprs
-%type<i> dims
-%type<i> dims.opt
-%type<i> do_statement
-%type<i> dot_ind.multiopt
-%type<i> empty_statement
-%type<i> enhanced_for_statement
-%type<i> enhanced_for_statement_no_short_if
-%type<i> enum_body
-%type<i> enum_body_declarations
-%type<i> enum_body_declarations.opt
-%type<i> enum_constant
-%type<i> enum_constant_list
-%type<i> enum_constant_list.opt
-%type<i> enum_declaration
-%type<i> eq_variable_initializer.opt
-%type<i> equality_expression
-%type<i> exception_type
-%type<i> exception_type_list
-%type<i> exclusive_or_expression
-%type<i> expression
-%type<i> expression.opt
-%type<i> expression_statement
-%type<i> field_access
-%type<i> finally
-%type<i> finally.opt
-%type<i> floating_point_type
-%type<i> for_init
-%type<i> for_init.opt
-%type<i> for_statement
-%type<i> for_statement_no_short_if
-%type<i> for_update
-%type<i> for_update.opt
-%type<i> formal_parameter
-%type<i> formal_parameter_list
-%type<i> formal_parameter_list.opt
-%type<i> if_then_else_statement
-%type<i> if_then_else_statement_no_short_if
-%type<i> if_then_statement
-%type<i> import_declaration
-%type<i> import_declaration.multiopt
-%type<i> inclusive_or_expression
-%type<i> input
-%type<i> instance_initializer
-%type<i> instanceof_expression
-%type<i> integral_type
-%type<i> interface_body
-%type<i> interface_declaration
-%type<i> interface_extends
-%type<i> interface_extends.opt
-%type<i> interface_member_declaration
-%type<i> interface_member_declaration.multiopt
-%type<i> interface_method_declaration
-%type<i> interface_permits
-%type<i> interface_permits.opt
-%type<i> interface_type_list
-%type<i> labeled_statement
-%type<i> labeled_statement_no_short_if
-%type<i> left_hand_side
-%type<i> local_class_or_interface_declaration
-%type<i> local_variable_declaration
-%type<i> local_variable_declaration_statement
-%type<i> local_variable_type
-%type<i> method_body
-%type<i> method_declaration
-%type<i> method_declarator
-%type<i> method_header
-%type<i> method_invocation
-%type<i> method_reference
-%type<i> modifier
-%type<i> modifier.multiopt
-%type<i> multiplicative_expression
-%type<i> normal_class_declaration
-%type<i> normal_interface_declaration
-%type<i> numeric_type
-%type<i> ordinary_compilation_unit
-%type<i> package_declaration
-%type<i> package_declaration.opt
-%type<i> pattern
-%type<i> post_decrement_expression
-%type<i> post_increment_expression
-%type<i> postfix_expression
-%type<i> pre_decrement_expression
-%type<i> pre_increment_expression
-%type<i> primary
-%type<i> primary_no_new_array
-%type<i> primitive_type
-%type<i> record_body
-%type<i> record_body_declaration
-%type<i> record_body_declaration.multiopt
-%type<i> record_component
-%type<i> record_component_list
-%type<i> record_component_list.opt
-%type<i> record_declaration
-%type<i> record_header
-%type<i> reference_type
-%type<i> relational_expression
-%type<i> resource
-%type<i> resource_list
-%type<i> resource_specification
-%type<i> result
-%type<i> return_statement
-%type<i> semcol.opt
-%type<i> semcol_resource.multiopt
-%type<i> shift_expression
-%type<i> simple_type_name
-%type<i> single_static_import_declaration
-%type<i> single_type_import_declaration
-%type<i> statement
-%type<i> statement_expression
-%type<i> statement_expression_list
-%type<i> statement_no_short_if
-%type<i> statement_without_trailing_substatement
-%type<i> static_import_on_demand_declaration
-%type<i> switch_block
-%type<i> switch_block_statement_group
-%type<i> switch_block_statement_group.multiopt
-%type<i> switch_expression
-%type<i> switch_label
-%type<i> switch_label_col.multiopt
-%type<i> switch_rule
-%type<i> switch_rule.multiopt
-%type<i> switch_statement
-%type<i> synchronized_statement
-%type<i> throw_statement
-%type<i> throws
-%type<i> throws.opt
-%type<i> top_level_class_or_interface_declaration
-%type<i> top_level_class_or_interface_declaration.multiopt
-%type<i> try_statement
-%type<i> try_with_resources_statement
-%type<i> type
-%type<i> type_argument
-%type<i> type_argument.multiopt
-%type<i> type_argument_list
-%type<i> type_arguments
-%type<i> type_arguments.opt
-%type<i> type_bound
-%type<i> type_bound.opt
-%type<i> type_import_on_demand_declaration
-%type<i> type_parameter
-%type<i> type_parameter_list
-%type<i> type_parameters
-%type<i> type_parameters.opt
-%type<i> type_pattern
-%type<i> un_name
-%type<i> unary_expression
-%type<i> unary_expression_not_plus_minus
-%type<i> unqualified_class_instance_creation_expression
-%type<i> variable_access
-%type<i> variable_arity_parameter
-%type<i> variable_arity_record_component
-%type<i> variable_declarator
-%type<i> variable_declarator_id
-%type<i> variable_declarator_list
-%type<i> variable_initializer
-%type<i> variable_initializer_list
-%type<i> variable_initializer_list.opt
-%type<i> vt_class_type.multiopt
-%type<i> while_statement
-%type<i> while_statement_no_short_if
-%type<i> wildcard
-%type<i> wildcard_bounds
-%type<i> wildcard_bounds.opt
-%type<i> yield_statement
+%type<s> IDENTIFIER.opt
+%type<s> additional_bound
+%type<s> additional_bound.multiopt
+%type<s> additive_expression
+%type<s> and_expression
+%type<s> argument_list
+%type<s> argument_list.opt
+%type<s> array_access
+%type<s> array_creation_expression
+%type<s> array_initializer
+%type<s> array_type
+%type<s> assert_statement
+%type<s> assignment
+%type<s> assignment_expression
+%type<s> assignment_operator
+%type<s> basic_for_statement
+%type<s> basic_for_statement_no_short_if
+%type<s> block
+%type<s> block_statement
+%type<s> block_statement.multiopt
+%type<s> block_statements
+%type<s> block_statements.opt
+%type<s> break_statement
+%type<s> case_constant
+%type<s> cast_expression
+%type<s> catch_clause
+%type<s> catch_clause.multiopt
+%type<s> catch_formal_parameter
+%type<s> catch_type
+%type<s> catches
+%type<s> catches.opt
+%type<s> class_body
+%type<s> class_body.opt
+%type<s> class_body_declaration
+%type<s> class_body_declaration.multiopt
+%type<s> class_declaration
+%type<s> class_extends
+%type<s> class_extends.opt
+%type<s> class_implements
+%type<s> class_implements.opt
+%type<s> class_instance_creation_expression
+%type<s> class_member_declaration
+%type<s> class_or_interface_type
+%type<s> class_permits
+%type<s> class_permits.opt
+%type<s> com.opt
+%type<s> com_case_constant.multiopt
+%type<s> com_enum_constant.multiopt
+%type<s> com_exception_type.multiopt
+%type<s> com_expression.multiopt
+%type<s> com_formal_parameter.multiopt
+%type<s> com_interface_type.multiopt
+%type<s> com_record_component.multiopt
+%type<s> com_statement_expression.multiopt
+%type<s> com_type_name.multiopt
+%type<s> com_type_parameter.multiopt
+%type<s> com_variable_declarator.multiopt
+%type<s> com_variable_initializer.multiopt
+%type<s> compact_constructor_declaration
+%type<s> compilation_unit
+%type<s> conditional_and_expression
+%type<s> conditional_expression
+%type<s> conditional_or_expression
+%type<s> constant_declaration
+%type<s> constructor_body
+%type<s> constructor_declaration
+%type<s> constructor_declarator
+%type<s> continue_statement
+%type<s> dim_expr
+%type<s> dim_expr.multiopt
+%type<s> dim_exprs
+%type<s> dims
+%type<s> dims.opt
+%type<s> do_statement
+%type<s> dot_ind.multiopt
+%type<s> empty_statement
+%type<s> enhanced_for_statement
+%type<s> enhanced_for_statement_no_short_if
+%type<s> enum_body
+%type<s> enum_body_declarations
+%type<s> enum_body_declarations.opt
+%type<s> enum_constant
+%type<s> enum_constant_list
+%type<s> enum_constant_list.opt
+%type<s> enum_declaration
+%type<s> eq_variable_initializer.opt
+%type<s> equality_expression
+%type<s> exception_type
+%type<s> exception_type_list
+%type<s> exclusive_or_expression
+%type<s> expression
+%type<s> expression.opt
+%type<s> expression_statement
+%type<s> field_access
+%type<s> finally
+%type<s> finally.opt
+%type<s> floating_point_type
+%type<s> for_init
+%type<s> for_init.opt
+%type<s> for_statement
+%type<s> for_statement_no_short_if
+%type<s> for_update
+%type<s> for_update.opt
+%type<s> formal_parameter
+%type<s> formal_parameter_list
+%type<s> formal_parameter_list.opt
+%type<s> if_then_else_statement
+%type<s> if_then_else_statement_no_short_if
+%type<s> if_then_statement
+%type<s> import_declaration
+%type<s> import_declaration.multiopt
+%type<s> inclusive_or_expression
+%type<s> input
+%type<s> instance_initializer
+%type<s> instanceof_expression
+%type<s> integral_type
+%type<s> interface_body
+%type<s> interface_declaration
+%type<s> interface_extends
+%type<s> interface_extends.opt
+%type<s> interface_member_declaration
+%type<s> interface_member_declaration.multiopt
+%type<s> interface_method_declaration
+%type<s> interface_permits
+%type<s> interface_permits.opt
+%type<s> interface_type_list
+%type<s> labeled_statement
+%type<s> labeled_statement_no_short_if
+%type<s> left_hand_side
+%type<s> local_class_or_interface_declaration
+%type<s> local_variable_declaration
+%type<s> local_variable_declaration_statement
+%type<s> local_variable_type
+%type<s> method_body
+%type<s> method_declaration
+%type<s> method_declarator
+%type<s> method_header
+%type<s> method_invocation
+%type<s> method_reference
+%type<s> modifier
+%type<s> modifier.multiopt
+%type<s> multiplicative_expression
+%type<s> normal_class_declaration
+%type<s> normal_interface_declaration
+%type<s> numeric_type
+%type<s> ordinary_compilation_unit
+%type<s> package_declaration
+%type<s> package_declaration.opt
+%type<s> pattern
+%type<s> post_decrement_expression
+%type<s> post_increment_expression
+%type<s> postfix_expression
+%type<s> pre_decrement_expression
+%type<s> pre_increment_expression
+%type<s> primary
+%type<s> primary_no_new_array
+%type<s> primitive_type
+%type<s> record_body
+%type<s> record_body_declaration
+%type<s> record_body_declaration.multiopt
+%type<s> record_component
+%type<s> record_component_list
+%type<s> record_component_list.opt
+%type<s> record_declaration
+%type<s> record_header
+%type<s> reference_type
+%type<s> relational_expression
+%type<s> resource
+%type<s> resource_list
+%type<s> resource_specification
+%type<s> result
+%type<s> return_statement
+%type<s> semcol.opt
+%type<s> semcol_resource.multiopt
+%type<s> shift_expression
+%type<s> simple_type_name
+%type<s> single_static_import_declaration
+%type<s> single_type_import_declaration
+%type<s> statement
+%type<s> statement_expression
+%type<s> statement_expression_list
+%type<s> statement_no_short_if
+%type<s> statement_without_trailing_substatement
+%type<s> static_import_on_demand_declaration
+%type<s> switch_block
+%type<s> switch_block_statement_group
+%type<s> switch_block_statement_group.multiopt
+%type<s> switch_expression
+%type<s> switch_label
+%type<s> switch_label_col.multiopt
+%type<s> switch_rule
+%type<s> switch_rule.multiopt
+%type<s> switch_statement
+%type<s> synchronized_statement
+%type<s> throw_statement
+%type<s> throws
+%type<s> throws.opt
+%type<s> top_level_class_or_interface_declaration
+%type<s> top_level_class_or_interface_declaration.multiopt
+%type<s> try_statement
+%type<s> try_with_resources_statement
+%type<s> type
+%type<s> type_argument
+%type<s> type_argument.multiopt
+%type<s> type_argument_list
+%type<s> type_arguments
+%type<s> type_arguments.opt
+%type<s> type_bound
+%type<s> type_bound.opt
+%type<s> type_import_on_demand_declaration
+%type<s> type_parameter
+%type<s> type_parameter_list
+%type<s> type_parameters
+%type<s> type_parameters.opt
+%type<s> type_pattern
+%type<s> un_name
+%type<s> unary_expression
+%type<s> unary_expression_not_plus_minus
+%type<s> unqualified_class_instance_creation_expression
+%type<s> variable_access
+%type<s> variable_arity_parameter
+%type<s> variable_arity_record_component
+%type<s> variable_declarator
+%type<s> variable_declarator_id
+%type<s> variable_declarator_list
+%type<s> variable_initializer
+%type<s> variable_initializer_list
+%type<s> variable_initializer_list.opt
+%type<s> vt_class_type.multiopt
+%type<s> while_statement
+%type<s> while_statement_no_short_if
+%type<s> wildcard
+%type<s> wildcard_bounds
+%type<s> wildcard_bounds.opt
+%type<s> yield_statement
 %%
 
     /* GRAMMAR RULES */
@@ -390,9 +398,9 @@ modifier.multiopt:
 | /*empty*/			
 ;
 modifier:
-  TOK_public			
-| TOK_protected			
-| TOK_private			
+  TOK_public			{modifier = "public";}
+| TOK_protected		{modifier = "protected";}	
+| TOK_private			{modifier = "private";}	
 | TOK_abstract			
 | TOK_static			
 | TOK_final			
@@ -420,15 +428,15 @@ numeric_type:
 | floating_point_type			
 ;
 integral_type:
-  TOK_byte			
-| TOK_short			
-| TOK_int			
-| TOK_long			
-| TOK_char			
+  TOK_byte			{ curr_type = "byte";}
+| TOK_short			{ curr_type = "short";}
+| TOK_int			{ curr_type = "int";}
+| TOK_long			{ curr_type = "long";}
+| TOK_char			{ curr_type = "char";}
 ;
 floating_point_type:
-  TOK_float			
-| TOK_double			
+  TOK_float			{curr_type = "float";}
+| TOK_double			{curr_type = "double";}
 ;
 reference_type:
   class_or_interface_type			
@@ -437,7 +445,7 @@ reference_type:
 class_or_interface_type:
   TOK_IDENTIFIER type_arguments.opt			
 | class_or_interface_type TOK_46 TOK_IDENTIFIER type_arguments.opt			
-| un_name			
+| un_name	
 ;
 array_type:
   class_or_interface_type dims			
@@ -488,8 +496,8 @@ wildcard_bounds:
 
   /* Names */
 un_name:
-  TOK_IDENTIFIER			
-| un_name TOK_46 TOK_IDENTIFIER			
+  TOK_IDENTIFIER			{curr_type = string($1);}
+| un_name TOK_46 TOK_IDENTIFIER			{curr_type = curr_type + '.' + string($3);}
 ;
 
 
@@ -545,12 +553,23 @@ com_type_name.multiopt:
 
   /* Classes */
 class_declaration:
-  normal_class_declaration			
+  normal_class_declaration			{cum_table.push_back(block_table[current_stack]);
+                                block_table[current_stack].clear();
+                                current_stack--;
+                                // cout<<parent_class<<"1\n";
+                                int i = parent_class.size() - 1;
+                                while(i>=0 && parent_class[i]!='.') i--;
+                                if(i != -1)
+                                parent_class = parent_class.substr(0,i);
+                                else parent_class = "";
+                                // cout<<i<<" "<<parent_class<<"2\n";
+                                }
+
 | enum_declaration			
 | record_declaration			
 ;
 normal_class_declaration:
-  modifier.multiopt  TOK_class  TOK_IDENTIFIER  type_parameters.opt class_extends.opt class_implements.opt class_permits.opt class_body			
+  modifier.multiopt TOK_class {curr_type = "class";class_dec_flag = 1;} hold_TOK_IDENTIFIER {current_stack++;} type_parameters.opt class_extends.opt class_implements.opt class_permits.opt class_body			
 ;
 type_parameters.opt:
   type_parameters			
@@ -602,7 +621,7 @@ class_body_declaration.multiopt:
 | /*empty*/			
 ;
 class_body_declaration:
-  class_member_declaration			
+  class_member_declaration		
 | instance_initializer			
 | constructor_declaration			
 ;
@@ -626,7 +645,7 @@ eq_variable_initializer.opt:
 | /*empty*/			
 ;
 variable_declarator_id:
-  TOK_IDENTIFIER dims.opt			
+  TOK_IDENTIFIER dims.opt			{block_table[current_stack][$1] = curr_type; }
 ;
 dims.opt:
   dims			
@@ -641,7 +660,7 @@ type_arguments.opt:
 | /*empty*/			
 ;
 method_declaration:
-  modifier.multiopt method_header method_body			
+  modifier.multiopt method_header method_body			{cum_table.push_back(block_table[current_stack]);block_table[current_stack].clear();current_stack--;}
 ;
 method_header:
   result method_declarator throws.opt			
@@ -653,10 +672,39 @@ throws.opt:
 ;
 result:
   type			
-| TOK_void			
+| TOK_void			{curr_type = "void";}
 ;
 method_declarator:
-  TOK_IDENTIFIER TOK_40 formal_parameter_list.opt TOK_41 dims.opt			
+  {method_dec_flag = 1;}hold_TOK_IDENTIFIER TOK_40 {method_dec_flag = 0; current_stack++;}formal_parameter_list.opt TOK_41 dims.opt			
+;
+hold_TOK_IDENTIFIER:
+  TOK_IDENTIFIER  { if(class_dec_flag){
+                      string hold = string($1);
+                      if(parent_class!=""){
+                        hold = parent_class + '.' + hold;
+                      }
+                      parent_class = hold;
+
+                      // can improve by making an array of class modifiers
+                      if(modifier == "public" && current_stack>0){
+                        block_table[current_stack-1][hold] = curr_type;
+                      }
+                      else{
+                        block_table[current_stack][hold] = curr_type;
+                      }
+                      class_dec_flag = 0;
+                    }
+                    else if(method_dec_flag){
+                      curr_type = parent_class + '.' + string($1);
+                      if(modifier == "public" && current_stack>0){
+                        block_table[current_stack-1][curr_type] = "method";
+                      }
+                      else{
+                        block_table[current_stack][curr_type] = "method";
+                      }
+                    }
+                    else
+                    block_table[current_stack][$1] = curr_type;}
 ;
 formal_parameter_list.opt:
   formal_parameter_list			
@@ -855,7 +903,7 @@ com_variable_initializer.multiopt:
 	/* blocks, statements, and patterns */
 
 block:
-  TOK_123 block_statements.opt TOK_125			
+  TOK_123 block_statements.opt TOK_125	
 ;
 block_statements:
   block_statement block_statement.multiopt			
@@ -888,8 +936,8 @@ statement:
 | labeled_statement			
 | if_then_statement			
 | if_then_else_statement			
-| while_statement			
-| for_statement			
+| while_statement			{cum_table.push_back(block_table[current_stack]);block_table[current_stack].clear();current_stack--;}
+| for_statement			{cum_table.push_back(block_table[current_stack]);block_table[current_stack].clear();current_stack--;}
 ;
 statement_no_short_if:
   statement_without_trailing_substatement			
@@ -926,7 +974,7 @@ expression_statement:
   statement_expression TOK_59			
 ;
 statement_expression:
-  assignment			
+  assignment			{if(lhs_type!=rhs_type){cout<<"Type mismatch: "<<lhs_type<<" can not be assigned "<<rhs_type<<"\n";}}
 | pre_increment_expression			
 | pre_decrement_expression			
 | post_increment_expression			
@@ -935,13 +983,16 @@ statement_expression:
 | class_instance_creation_expression			
 ;
 if_then_statement:
-  TOK_if TOK_40 expression TOK_41 statement			
+  hold_TOK_if TOK_40 expression TOK_41 statement		{cum_table.push_back(block_table[current_stack]);block_table[current_stack].clear();current_stack--;}	
+;
+hold_TOK_if:
+  TOK_if      {current_stack++;}
 ;
 if_then_else_statement:
-  TOK_if TOK_40 expression TOK_41 statement_no_short_if TOK_else statement			
+  hold_TOK_if TOK_40 expression TOK_41 statement_no_short_if {cum_table.push_back(block_table[current_stack]);block_table[current_stack].clear();current_stack--;current_stack++;} TOK_else statement			{cum_table.push_back(block_table[current_stack]);block_table[current_stack].clear();current_stack--;}
 ;
 if_then_else_statement_no_short_if:
-  TOK_if TOK_40 expression TOK_41 statement_no_short_if TOK_else statement_no_short_if			
+  hold_TOK_if TOK_40 expression TOK_41 statement_no_short_if {cum_table.push_back(block_table[current_stack]);block_table[current_stack].clear();current_stack--;current_stack++;} TOK_else statement_no_short_if			{cum_table.push_back(block_table[current_stack]);block_table[current_stack].clear();current_stack--;}
 ;
 assert_statement:
   TOK_assert expression TOK_59			
@@ -986,13 +1037,15 @@ case_constant:
   conditional_expression			
 ;
 while_statement:
-  TOK_while TOK_40 expression TOK_41 statement			
+  hold_TOK_while TOK_40 expression TOK_41 statement			
 ;
+hold_TOK_while:
+  TOK_while        {current_stack++;}
 while_statement_no_short_if:
-  TOK_while TOK_40 expression TOK_41 statement_no_short_if			
+  hold_TOK_while TOK_40 expression TOK_41 statement_no_short_if			
 ;
 do_statement:
-  TOK_do statement TOK_while TOK_40 expression TOK_41 TOK_59			
+  TOK_do statement hold_TOK_while TOK_40 expression TOK_41 TOK_59			
 ;
 for_statement:
   basic_for_statement			
@@ -1003,7 +1056,10 @@ for_statement_no_short_if:
 | enhanced_for_statement_no_short_if			
 ;
 basic_for_statement:
-  TOK_for TOK_40 for_init.opt TOK_59 expression.opt TOK_59 for_update.opt TOK_41 statement			
+  hold_TOK_for TOK_40 for_init.opt TOK_59 expression.opt TOK_59 for_update.opt TOK_41 statement			
+;
+hold_TOK_for:
+  TOK_for     {current_stack++;}
 ;
 for_init.opt:
   for_init			
@@ -1018,7 +1074,7 @@ for_update.opt:
 | /*empty*/			
 ;
 basic_for_statement_no_short_if:
-  TOK_for TOK_40 for_init.opt TOK_59 expression.opt TOK_59 for_update.opt TOK_41 statement_no_short_if			
+  hold_TOK_for TOK_40 for_init.opt TOK_59 expression.opt TOK_59 for_update.opt TOK_41 statement_no_short_if			
 ;
 for_init:
   statement_expression_list			
@@ -1035,10 +1091,10 @@ com_statement_expression.multiopt:
 | /*empty*/			
 ;
 enhanced_for_statement:
-  TOK_for TOK_40 local_variable_declaration TOK_58 expression TOK_41 statement			
+  hold_TOK_for TOK_40 local_variable_declaration TOK_58 expression TOK_41 statement			
 ;
 enhanced_for_statement_no_short_if:
-  TOK_for TOK_40 local_variable_declaration TOK_58 expression TOK_41 statement_no_short_if			
+  hold_TOK_for TOK_40 local_variable_declaration TOK_58 expression TOK_41 statement_no_short_if			
 ;
 break_statement:
   TOK_break IDENTIFIER.opt TOK_59			
@@ -1337,110 +1393,16 @@ void yyerror(char const *s){
 	printf("Error in line %d: %s\n", yylineno, s);
 }
 
-string fix_escape_chars(string s) {
-	string res = "";
-	char prev = ' ';
-	for (int i = 0; i < s.length(); i++) {
-		char c = s[i];
-		char next = (i+1 < s.length()) ? s[i+1] : ' ';
-		if (c == '\\' && prev != '\\' && next != '"') {
-			res += "\\\\";
-		} else {
-			res += c;
-		}
-		prev = c;
-	}
-	return res;
-}
-
-string replace_quotes(string s) {
-	string res = "";
-	char prev = ' ';
-	for (char c: s) {
-		if (c == '"' && prev != '\\') {
-			res += "\\\"";
-		} else {
-			res += c;
-		}
-		prev = c;
-	}
-	return res;
-}
-
-int createNode(string lbl) {
-	vector<int> v;
-	nodes.push_back({replace_quotes(fix_escape_chars(lbl)), v});
-	// cout << "Node Created - " << lbl << endl;
-	return nodes.size()-1;
-}
-
-void addChild(int parent, int child) {
-	nodes[parent].second.push_back(child);
-	// cout << "Added Child - " << label[parent] << "->" << label[child] << endl;
-}
-
-int get_leaf_or_multi_child_node(int node) {
-	if (nodes[node].second.size() == 1) {
-		return get_leaf_or_multi_child_node(nodes[node].second[0]);
-	}
-	return node;
-}
-
-void fix_ast(int node) {
-	// if child node has only one child remove the child node and add the child of child node to parent node
-	for (int i = 0; i < nodes[node].second.size(); i++) {
-		int child = nodes[node].second[i];
-		fix_ast(child);
-		int final_child = get_leaf_or_multi_child_node(child);
-		if (final_child != child) {
-			// if (nodes[final_child].second.size() != 0) {
-			// 	nodes[final_child].first = nodes[child].first;
-			// }
-			nodes[node].second[i] = final_child;
-			// cout << "----Fixed AST - " << nodes[node].first << "->" << nodes[child].first << " to " << nodes[node].first << "->" << nodes[final_child].first << endl;
-		}
-	}
-}
-
-void build_graph() {
-	freopen("out.dot", "w", stdout);
-	cout << "// dot -Tps out.dot -o out.ps\n\n"
-		 << "graph \"Abstract Syntax Tree\"\n"
-		 << "{\n"
-    	 << "\tfontname=\"Helvetica,Arial,sans-serif\"\n"
-    	 << "\tnode [fontsize=10, width=\".2\", height=\".2\", margin=0]\n"
-		 << "\tedge [fontsize=6]\n"
-    	 << "\tgraph[fontsize=8];\n\n"
-    	 << "\tlabel=\"Abstract Syntax Tree\"\n\n";
-
-	queue<int> nodesQueue;
-	nodesQueue.push(startNode);
-	while (!nodesQueue.empty()) {
-		int node = nodesQueue.front();
-		nodesQueue.pop();
-		cout << "\tn" << node << " ;\n";
-		cout << "\tn" << node << " [label=\"" << nodes[node].first << "\"] ;\n";
-		for (int child: nodes[node].second) {
-			cout << "\tn" << node << " -- " << 'n' << child << " ;\n";
-			nodesQueue.push(child);
-		}
-		cout << endl;
-	}
-
-	cout << "}" << endl;
-  fclose(stdout);
-}
-
 void print_symbol_table(){
   freopen("symbole_table.txt", "w", stdout);
   cout<<"Symbol      Type\n";
-  for(int i = 0; i < block_count-1; i++) {
-    for(auto itr = block_table[i].begin(); itr != block_table[i].end(); itr++) {
+  cum_table.push_back(block_table[0]);
+  for(int i = 0; i < cum_table.size(); i++) {
+    for(auto itr = cum_table[i].begin(); itr != cum_table[i].end(); itr++) {
       cout<< itr->first <<" "<<itr->second<<"\n";
     }
     cout<< "--------------------------------\n";
   }
-  cout<<"Number of Blocks : "<<block_count<<"\n";
   fclose(stdout);
   return;
 }
@@ -1450,8 +1412,6 @@ int main(int argc, char *argv[]) {
 //   yydebug=1;
 	yyparse();
 	fclose(yyin);
-	// fix_ast(startNode);
-	build_graph();
   print_symbol_table();
 	return 0;
 }

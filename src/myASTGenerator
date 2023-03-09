@@ -40,6 +40,7 @@ fi
 # echo $output
 
 ./javacompiler $input
+./newcompiler $input
 mv out.dot $output
 
 dot -Tpng -o image.png $output
