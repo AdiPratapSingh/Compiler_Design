@@ -39,8 +39,8 @@ int yylex (YYSTYPE*);
 %define parse.trace
 %define api.pure
 %token <s> TOK_IDENTIFIER
-%token <s> TOK_LITERAL
-
+%token <s> TOK_NUMERICLITERAL
+%token <s> TOK_NONNUMERICLITERAL
 
 %token <s> TOK_33 "!"
 %token <s> TOK_3361 "!="
@@ -144,6 +144,7 @@ int yylex (YYSTYPE*);
 %token <s> TOK_124124 "||"
 %token <s> TOK_125 "}"
 %token <s> TOK_126 "~"
+%type<i> hold_Literal
 %type<i> IDENTIFIER.opt
 %type<i> additional_bound
 %type<i> additional_bound.multiopt
@@ -1136,7 +1137,7 @@ primary:
 | array_creation_expression			{$$=createNode("primary");if($1 !=-1)addChild($$,$1);}
 ;
 primary_no_new_array:
-  TOK_LITERAL			{$$=createNode("primary_no_new_array");addChild($$,createNode($1));}
+  hold_Literal			{$$=createNode("primary_no_new_array");addChild($$,$1);}
 | TOK_this			{$$=createNode("primary_no_new_array");addChild($$,createNode($1));}
 | un_name TOK_46 TOK_this			{$$=createNode("primary_no_new_array");if($1 !=-1)addChild($$,$1);addChild($$,createNode($2));addChild($$,createNode($3));}
 | TOK_40 expression TOK_41			{$$=createNode("primary_no_new_array");addChild($$,createNode($1));if($2 !=-1)addChild($$,$2);addChild($$,createNode($3));}
@@ -1145,6 +1146,11 @@ primary_no_new_array:
 | array_access			{$$=createNode("primary_no_new_array");if($1 !=-1)addChild($$,$1);}
 | method_invocation			{$$=createNode("primary_no_new_array");if($1 !=-1)addChild($$,$1);}
 | method_reference			{$$=createNode("primary_no_new_array");if($1 !=-1)addChild($$,$1);}
+;
+
+hold_Literal:
+  TOK_NUMERICLITERAL      {$$=createNode("hold_Literal");addChild($$,createNode("Numeric" + string($1)));}
+| TOK_NONNUMERICLITERAL     {$$=createNode("hold_Literal");addChild($$,createNode("NonNumeric" + string($1)));}
 ;
 
 class_instance_creation_expression:

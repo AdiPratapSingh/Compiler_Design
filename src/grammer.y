@@ -13,7 +13,7 @@ vector<pair<string,vector<int>>> nodes;
 int startNode;
 
 // Symbol Table
-vector<map<string,string>> block_table(1000);
+vector<map<string,string>> block_table(10);
 vector<map<string,string>> cum_table;
 map<string,string> symbol_table;
 int current_stack = 0;
@@ -24,12 +24,27 @@ int class_dec_flag = 0;
 int method_dec_flag = 0;
 
 vector<string> mod_list;
-string lhs_type;
-string rhs_type;
+string lhs_type = "";
+string rhs_type = "";
+int lhs_record = 1;
+int rhs_record = 1;
+int halt_type_check = 0;
+string pre_var = "";
+
+struct var_info{
+  string name;
+  int size;
+  int offset;
+  string type;
+};
+
+vector<var_info> database;
+struct var_info* filler;
 
 
 void yyerror(char const *);
 int createNode(string);
+string probe_type(string);
 void addChild(int, int);
 
 %}
@@ -47,9 +62,8 @@ int yylex (YYSTYPE*);
 %define parse.trace
 %define api.pure
 %token <s> TOK_IDENTIFIER
-%token <s> TOK_LITERAL
-
-
+%token <s> TOK_NUMERICLITERAL
+%token <s> TOK_NONNUMERICLITERAL
 %token <s> TOK_33 "!"
 %token <s> TOK_3361 "!="
 %token <s> TOK_37 "%"
@@ -152,6 +166,7 @@ int yylex (YYSTYPE*);
 %token <s> TOK_124124 "||"
 %token <s> TOK_125 "}"
 %token <s> TOK_126 "~"
+%type<s> hold_Literal
 %type<s> IDENTIFIER.opt
 %type<s> additional_bound
 %type<s> additional_bound.multiopt
@@ -428,15 +443,15 @@ numeric_type:
 | floating_point_type			
 ;
 integral_type:
-  TOK_byte			{ curr_type = "byte";}
-| TOK_short			{ curr_type = "short";}
-| TOK_int			{ curr_type = "int";}
-| TOK_long			{ curr_type = "long";}
-| TOK_char			{ curr_type = "char";}
+  TOK_byte			{ curr_type = "Numeric";}
+| TOK_short			{ curr_type = "Numeric";}
+| TOK_int			{ curr_type = "Numeric";}
+| TOK_long			{ curr_type = "Numeric";}
+| TOK_char			{ curr_type = "Numeric";}
 ;
 floating_point_type:
-  TOK_float			{curr_type = "float";}
-| TOK_double			{curr_type = "double";}
+  TOK_float			{curr_type = "Numeric";}
+| TOK_double			{curr_type = "Numeric";}
 ;
 reference_type:
   class_or_interface_type			
@@ -496,7 +511,28 @@ wildcard_bounds:
 
   /* Names */
 un_name:
-  TOK_IDENTIFIER			{curr_type = string($1);}
+  TOK_IDENTIFIER			{ curr_type = string($1);
+                        string iden_type = probe_type(curr_type);
+
+                        if(iden_type == ""){
+                          cout<<"Error at line no "<<yylineno<<": Undefined reference "<<$1<<"\n";
+                        }
+                        cout<<string($1)<<" "<<lhs_type<<" "<<rhs_type<<" "<<halt_type_check<<"\n";
+                        if(halt_type_check == 0){
+                          if(lhs_record == 1){
+                            lhs_type = iden_type;
+                            cout<<lhs_type<<" -- "<<$$<<"\n";
+                          }
+                          if(rhs_record == 1){
+                            rhs_type = iden_type;
+                          }
+                        }else{
+                          lhs_type = "";
+                          rhs_type = "";
+                        }
+                        cout<<string($1)<<" "<<lhs_type<<" "<<rhs_type<<" "<<halt_type_check<<"\n";
+                        pre_var = string($1);
+                      }
 | un_name TOK_46 TOK_IDENTIFIER			{curr_type = curr_type + '.' + string($3);}
 ;
 
@@ -645,7 +681,12 @@ eq_variable_initializer.opt:
 | /*empty*/			
 ;
 variable_declarator_id:
-  TOK_IDENTIFIER dims.opt			{block_table[current_stack][$1] = curr_type; }
+  TOK_IDENTIFIER dims.opt			{block_table[current_stack][$1] = curr_type;
+                                filler = new var_info;
+                                filler->name = string($1);
+                                filler->type = curr_type;
+                                
+                               }
 ;
 dims.opt:
   dims			
@@ -675,7 +716,7 @@ result:
 | TOK_void			{curr_type = "void";}
 ;
 method_declarator:
-  {method_dec_flag = 1;}hold_TOK_IDENTIFIER TOK_40 {method_dec_flag = 0; current_stack++;}formal_parameter_list.opt TOK_41 dims.opt			
+  {method_dec_flag = 1;}hold_TOK_IDENTIFIER TOK_40 {method_dec_flag = 0; current_stack++;halt_type_check = 1;}formal_parameter_list.opt TOK_41 dims.opt	 {halt_type_check = 0;}	
 ;
 hold_TOK_IDENTIFIER:
   TOK_IDENTIFIER  { if(class_dec_flag){
@@ -761,7 +802,7 @@ block_statements.opt:
 | /*empty*/			
 ;
 argument_list.opt:
-  argument_list			
+  {halt_type_check = 1;}argument_list			{halt_type_check = 0; }
 | /*empty*/			
 ;
 enum_declaration:
@@ -971,10 +1012,21 @@ labeled_statement_no_short_if:
   TOK_IDENTIFIER TOK_58 statement_no_short_if			
 ;
 expression_statement:
-  statement_expression TOK_59			
+  statement_expression TOK_59			{
+                                  if(halt_type_check == 0){
+                                    if(lhs_type!=rhs_type){
+                                      cout<<"Error at line no "<<yylineno<<": "<<lhs_type<<" type cannot be assigned "<<rhs_type<<" type\n";
+                                    }
+                                    else{
+                                      cout<<"Correct :"<<yylineno<<" "<<lhs_type<<" "<<rhs_type<<"\n";
+                                    }
+                                  }
+                                  lhs_record = 1;
+                                  rhs_record = 1;
+                                  }
 ;
 statement_expression:
-  assignment			{if(lhs_type!=rhs_type){cout<<"Type mismatch: "<<lhs_type<<" can not be assigned "<<rhs_type<<"\n";}}
+  assignment			
 | pre_increment_expression			
 | pre_decrement_expression			
 | post_increment_expression			
@@ -1192,15 +1244,23 @@ primary:
 | array_creation_expression			
 ;
 primary_no_new_array:
-  TOK_LITERAL			
+  hold_Literal		
 | TOK_this			
 | un_name TOK_46 TOK_this			
 | TOK_40 expression TOK_41			
 | class_instance_creation_expression			
 | field_access			
-| array_access			
+| array_access		
 | method_invocation			
 | method_reference			
+;
+
+hold_Literal:
+  TOK_NUMERICLITERAL    {if(halt_type_check == 0)rhs_type = "Numeric";
+                          else rhs_type = "";}
+| TOK_NONNUMERICLITERAL      {if(halt_type_check == 0)rhs_type = "String";
+                              else rhs_type = "";
+                              cout<<rhs_type<<" "<<halt_type_check<<" ====\n";}
 ;
 
 class_instance_creation_expression:
@@ -1217,7 +1277,10 @@ field_access:
 | un_name TOK_46 TOK_super TOK_46 TOK_IDENTIFIER			
 ;
 array_access:
-  un_name TOK_91 expression TOK_93			
+  un_name TOK_91 expression TOK_93		  {if(halt_type_check == 0){
+                                          rhs_type = probe_type(pre_var);
+                                        }
+                                        else rhs_type = "";}
 | primary_no_new_array TOK_91 expression TOK_93			
 ;
 method_invocation:
@@ -1264,10 +1327,10 @@ assignment_expression:
 | assignment			
 ;
 assignment:
-  left_hand_side assignment_operator expression			
+  left_hand_side assignment_operator expression			{rhs_record = 1;lhs_record = 1;}
 ;
 left_hand_side:
-  un_name			
+  un_name	{lhs_record = 0;}		
 | field_access			
 | array_access			
 ;
@@ -1316,10 +1379,26 @@ equality_expression:
 ;
 relational_expression:
   shift_expression			
-| relational_expression TOK_60 shift_expression			
-| relational_expression TOK_62 shift_expression			
-| relational_expression TOK_6061 shift_expression			
-| relational_expression TOK_6261 shift_expression			
+| relational_expression TOK_60 shift_expression			{cout<<"testing: "<<lhs_type<<" "<<rhs_type<<"\n";
+                                                      if(lhs_type != rhs_type){
+                                                        cout<<"Error at line no "<<yylineno<<": "<<lhs_type<<" type cannot be compared with "<<rhs_type<<" type\n";
+                                                      }
+                                                    }
+| relational_expression TOK_62 shift_expression			{cout<<"testing: "<<lhs_type<<" "<<rhs_type<<"\n";
+                                                      if(lhs_type != rhs_type){
+                                                        cout<<"Error at line no "<<yylineno<<": "<<lhs_type<<" type cannot be compared with "<<rhs_type<<" type\n";
+                                                      }
+                                                    }
+| relational_expression TOK_6061 shift_expression		{cout<<"testing: "<<lhs_type<<" "<<rhs_type<<"\n";
+                                                      if(lhs_type != rhs_type){
+                                                        cout<<"Error at line no "<<yylineno<<": "<<lhs_type<<" type cannot be compared with "<<rhs_type<<" type\n";
+                                                      }
+                                                    }
+| relational_expression TOK_6261 shift_expression		{cout<<"testing: "<<lhs_type<<" "<<rhs_type<<"\n";
+                                                      if(lhs_type != rhs_type){
+                                                        cout<<"Error at line no "<<yylineno<<": "<<lhs_type<<" type cannot be compared with "<<rhs_type<<" type\n";
+                                                      }
+                                                    }
 | instanceof_expression			
 ;
 instanceof_expression:
@@ -1327,18 +1406,18 @@ instanceof_expression:
 | relational_expression TOK_instanceof pattern			
 ;
 shift_expression:
-  additive_expression			
+  additive_expression         
 | shift_expression TOK_6060 additive_expression			
 | shift_expression TOK_6262 additive_expression			
 | shift_expression TOK_626262 additive_expression			
 ;
 additive_expression:
-  multiplicative_expression			
+  multiplicative_expression		   	
 | additive_expression TOK_43 multiplicative_expression			
 | additive_expression TOK_45 multiplicative_expression			
 ;
 multiplicative_expression:
-  unary_expression			
+  unary_expression			{cout<<lhs_type<<" "<<rhs_type<<" ++++\n";}
 | multiplicative_expression TOK_42 unary_expression			
 | multiplicative_expression TOK_47 unary_expression			
 | multiplicative_expression TOK_37 unary_expression			
@@ -1363,7 +1442,7 @@ unary_expression_not_plus_minus:
 ;
 postfix_expression:
   primary			
-| un_name			
+| un_name	{rhs_record = 0;}		
 | post_increment_expression			
 | post_decrement_expression			
 ;
@@ -1391,6 +1470,28 @@ switch_expression:
 
 void yyerror(char const *s){
 	printf("Error in line %d: %s\n", yylineno, s);
+}
+
+void print_stack(){
+  for(int i = block_table.size() -1; i>=0; i--){
+    for(auto itr = block_table[i].begin(); itr != block_table[i].end(); itr++){
+      cout<<itr->first<<" "<<itr->second<<endl;
+    }
+    cout<<"--------------------------------\n";
+  }
+  return;
+}
+
+string probe_type(string var){
+  for(int i = block_table.size() -1; i>=0; i--){
+    if(block_table[i][var]!=""){
+      return block_table[i][var];
+    }
+  }
+  // if(var!="String")
+  // print_stack();
+  // cout<<yylineno<<" "<<var<<"\n";
+  return "";
 }
 
 void print_symbol_table(){

@@ -1,6 +1,8 @@
 
 %{
-#include "parser.tab.h"
+#include "grammer.tab.h"
+// #include "parser.tab.h"
+
 extern int yylineno;
 %}
 hex         [0-9]|[a-f]|[A-F]
@@ -25,7 +27,8 @@ Keyword             {ReservedKeyword}|{ContextualKeyword}
 
 
 
-Literal                 {IntegerLiteral}|{FloatingPointLiteral}|{BooleanLiteral}|{CharacterLiteral}|{StringLiteral}|{TextBlock}|{NullLiteral}
+NumericLiteral                 {IntegerLiteral}|{FloatingPointLiteral}|{BooleanLiteral}|{CharacterLiteral}
+NonNumericLiteral               {StringLiteral}|{TextBlock}|{NullLiteral}
 
 IntegerLiteral          {DecimalIntegerLiteral}|{HexIntegerLiteral}|{OctalIntegerLiteral}|{BinaryIntegerLiteral}
 
@@ -209,8 +212,8 @@ Operator                    =|>|<|!|~|\?|\->|==|>=|<=|!=|&&|\|\||\+\+|\-\-|\+|\-
 "}"			{yylval->s=strdup(yytext);return TOK_125;}
 "~"			{yylval->s=strdup(yytext);return TOK_126;}
 
-
-{Literal}       {yylval->s = strdup(yytext);return TOK_LITERAL;}
+{NumericLiteral}       {yylval->s = strdup(yytext);return TOK_NUMERICLITERAL;}
+{NonNumericLiteral}       {yylval->s = strdup(yytext);return TOK_NONNUMERICLITERAL;}
 {Identifier}    {yylval->s = strdup(yytext);return TOK_IDENTIFIER;}
 .               {;}
 %%
