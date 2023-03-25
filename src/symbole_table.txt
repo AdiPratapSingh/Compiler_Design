@@ -3,6 +3,8 @@ String
 array 
 c 
 d 
+j 
+k 
 n 
 swap 
 --------------------------------
@@ -10,36 +12,38 @@ String
 array 
 c 
 d 
+j 
+k 
 n 
 swap 
 --------------------------------
 String 
 array 
-c 
+c Numeric
 d 
+j 
 k Numeric
 n 
 swap 
 --------------------------------
-System 
-array 
-c 
-n 
---------------------------------
 String 
-System 
 args String
-array Numeric
-c Numeric
+array 
 d Numeric
+j 
+k 
 n Numeric
 swap Numeric
 --------------------------------
 String 
-System 
+array 
+j 
+k 
 --------------------------------
 BubbleSort class
 BubbleSort.main method
 String 
-System 
+array 
+j 
+k 
 --------------------------------

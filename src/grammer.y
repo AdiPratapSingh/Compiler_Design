@@ -26,12 +26,20 @@ int method_dec_flag = 0;
 // 3AC
 int temp_count = 0;
 int curr_state = 0;
-int parsed_exp_low = -1;
-int parsed_exp_high = -1;
-int multiplicative_expression_var = -1;
-string cond_expr = "";
+vector<int> parsed_exp_low;
+vector<int> parsed_exp_high;
+vector<int> multiplicative_expression_var;
+// string cond_expr = "";
 int record_cond = 0;
 int active_3ac = 0;
+
+stack<int> begin_states;
+stack<int> end_states;
+stack<int> if_states;
+string hold;
+int computation_level = -1;
+int subexpression_flag = 0;
+int inline_initialization_flag = 0;
 
 vector<string> mod_list;
 string lhs_type = "";
@@ -525,7 +533,7 @@ un_name:
                         string iden_type = probe_type(curr_type);
 
                         if(iden_type == ""){
-                          cout<<"Error at line no "<<yylineno<<": Undefined reference "<<$1<<"\n";
+                          // cout<<"Error at line no "<<yylineno<<": Undefined reference "<<$1<<"\n";
                         }
                         //cout<<string($1)<<" "<<lhs_type<<" "<<rhs_type<<" "<<halt_type_check<<"\n";
                         if(halt_type_check == 0){
@@ -683,10 +691,14 @@ com_variable_declarator.multiopt:
 | /*empty*/			
 ;
 variable_declarator:
-  variable_declarator_id eq_variable_initializer.opt			
+  variable_declarator_id eq_variable_initializer.opt			{if(inline_initialization_flag == 1){
+                                                            cout<<string($1)<<" = t"<<temp_count - 1<<"\n";
+                                                            inline_initialization_flag = 0;
+                                                          }
+                                                          }
 ;
 eq_variable_initializer.opt:
-  TOK_61 variable_initializer			
+  TOK_61 {active_3ac = 1;} variable_initializer	{inline_initialization_flag = 1; active_3ac = 0;}		
 | /*empty*/			
 ;
 variable_declarator_id:
@@ -702,7 +714,7 @@ dims.opt:
 | /*empty*/			
 ;
 variable_initializer:
-  expression			
+  expression  			
 | array_initializer			
 ;
 type_arguments.opt:
@@ -801,10 +813,10 @@ instance_initializer:
   block			
 ;
 constructor_declaration:
-  modifier.multiopt constructor_declarator throws.opt constructor_body			
+  modifier.multiopt constructor_declarator throws.opt constructor_body { cout<<"endfunction\n";}			
 ;
 constructor_declarator:
-  simple_type_name TOK_40 formal_parameter_list.opt TOK_41			
+  simple_type_name {cout<<"beginfunc\n";}TOK_40 formal_parameter_list.opt TOK_41			
 ;
 simple_type_name:
   TOK_IDENTIFIER			
@@ -1030,7 +1042,7 @@ expression_statement:
   statement_expression TOK_59			{
                                   if(halt_type_check == 0){
                                     if(lhs_type!=rhs_type){
-                                      cout<<"Error at line no "<<yylineno<<": "<<lhs_type<<" type cannot be assigned "<<rhs_type<<" type\n";
+                                      // cout<<"Error at line no "<<yylineno<<": "<<lhs_type<<" type cannot be assigned "<<rhs_type<<" type\n";
                                     }
                                     else{
                                       //cout<<"Correct :"<<yylineno<<" "<<lhs_type<<" "<<rhs_type<<"\n";
@@ -1051,12 +1063,12 @@ statement_expression:
 ;
 if_then_statement:
   hold_TOK_if TOK_40 expression { record_cond = 0;
-                                  cout<<"if("<<cond_expr<<" == false ) ";
-                                  cout<<"Goto State_"<<curr_state+1<<"\n";
-                                  cout<<"State_"<<curr_state<<" : \n";
+                                  cout<<"if( t"<<temp_count - 1<<" == false ) ";
+                                  if_states.push(curr_state);
+                                  cout<<"Goto State_"<<curr_state<<"\n";
                                   curr_state++;
-                                } TOK_41 statement		{ cout<<"State_"<<curr_state<<" :\n";
-                                                        curr_state++;
+                                } TOK_41 statement		{ cout<<"State_"<<if_states.top()<<" :\n";
+                                                        if_states.pop();
                                                         cum_table.push_back(block_table[current_stack]);
                                                         block_table[current_stack].clear();current_stack--;
                                                       }	
@@ -1066,34 +1078,43 @@ hold_TOK_if:
 ;
 if_then_else_statement:
   hold_TOK_if TOK_40 expression { record_cond = 0;
-                                  cout<<"if("<<cond_expr<<" == false) ";
-                                  cout<<"Goto State_"<<curr_state+1<<"\n";
-                                  cout<<"State_"<<curr_state<<" : \n";
+                                  cout<<"if( t"<<temp_count - 1<<" == false ) ";
+                                  if_states.push(curr_state);
+                                  cout<<"Goto State_"<<curr_state<<"\n";
                                   curr_state++;
                                 } TOK_41 statement_no_short_if {cum_table.push_back(block_table[current_stack]);
                                                                 block_table[current_stack].clear();
                                                                 current_stack--;
                                                                 current_stack++;
-                                                                cout<<"State_"<<curr_state<<" :\n";
+                                                                cout<<"Goto State_"<<curr_state<<"\n";
+                                                                cout<<"State_"<<if_states.top()<<" :\n";
+                                                                if_states.push(curr_state);
                                                                 curr_state++;
-                                                              } TOK_else statement	{ cout<<"State_"<<curr_state<<" :\n";
-                                                                                      curr_state++;
+                                                                if_states.pop();
+                                                              } TOK_else statement	{ cout<<"State_"<<if_states.top()<<" :\n";
+                                                                                      if_states.pop();
                                                                                       cum_table.push_back(block_table[current_stack]);block_table[current_stack].clear();current_stack--;}
 ;
 if_then_else_statement_no_short_if:
   hold_TOK_if TOK_40 expression { record_cond = 0;
-                                  cout<<"if("<<cond_expr<<" == false) ";
-                                  cout<<"Goto State_"<<curr_state+1<<"\n";
-                                  cout<<"State_"<<curr_state<<" : \n";
+                                  cout<<"if( t"<<temp_count - 1<<" == false ) ";
+                                  if_states.push(curr_state);
+                                  cout<<"Goto State_"<<curr_state<<"\n";
                                   curr_state++;
                                 } TOK_41 statement_no_short_if {cum_table.push_back(block_table[current_stack]);
                                                                 block_table[current_stack].clear();
                                                                 current_stack--;
                                                                 current_stack++;
-                                                                cout<<"State_"<<curr_state<<" :\n";
+                                                                cout<<"Goto State_"<<curr_state<<"\n";
+                                                                cout<<"State_"<<if_states.top()<<" :\n";
+                                                                if_states.push(curr_state);
                                                                 curr_state++;
-                                                              } TOK_else statement_no_short_if	{ cout<<"State_"<<curr_state<<" :\n";
+                                                                if_states.pop();
+                                                              } TOK_else statement_no_short_if	{ cout<<"Goto State_"<<curr_state<<"\n";
+                                                                                                  cout<<"State_"<<if_states.top()<<" :\n";
+                                                                                                  if_states.push(curr_state);
                                                                                                   curr_state++;
+                                                                                                  if_states.pop();
                                                                                                   cum_table.push_back(block_table[current_stack]);
                                                                                                   block_table[current_stack].clear();
                                                                                                   current_stack--;
@@ -1162,11 +1183,19 @@ for_statement_no_short_if:
 ;
 basic_for_statement:
   hold_TOK_for TOK_40 for_init.opt TOK_59 { record_cond = 1;} expression.opt {
-                                                                              cout<<"State_"<<curr_state<<" :\n";curr_state++;
+                                                                              cout<<"State_"<<curr_state<<" :\n";
                                                                               record_cond = 0;
-                                                                              cout<<"if("<<cond_expr<<") Goto State_"<<curr_state<<"\n";
-                                                                            } TOK_59  for_update.opt TOK_41 statement			{cout<<"Goto State_"<<curr_state-1<<"\n";
-                                                                                                                            cout<<"State_"<<curr_state<<" :\n";curr_state++;}
+                                                                              begin_states.push(curr_state);
+                                                                              curr_state++;
+                                                                              end_states.push(curr_state);
+                                                                              curr_state++;
+                                                                              cout<<"if( t"<<temp_count - 1 <<" == false) Goto State_"<<curr_state-1<<"\n";
+                                                                            } TOK_59  for_update.opt TOK_41 statement	{ 
+                                                                                                                        cout<<"Goto State_"<<begin_states.top()<<"\n";
+                                                                                                                        cout<<"State_"<<end_states.top()<<" :\n";curr_state++;
+                                                                                                                        begin_states.pop();
+                                                                                                                        end_states.pop();
+                                                                                                                      }
 ;
 hold_TOK_for:
   TOK_for     {current_stack++;}
@@ -1305,7 +1334,7 @@ primary_no_new_array:
   hold_Literal		
 | TOK_this			
 | un_name TOK_46 TOK_this			
-| TOK_40 expression TOK_41			
+| TOK_40 expression TOK_41			{subexpression_flag = 1;}
 | class_instance_creation_expression			
 | field_access			
 | array_access		
@@ -1339,10 +1368,24 @@ field_access:
 | un_name TOK_46 TOK_super TOK_46 TOK_IDENTIFIER			
 ;
 array_access:
-  un_name TOK_91 expression TOK_93		  {if(halt_type_check == 0){
-                                          rhs_type = probe_type(pre_var);
+  un_name TOK_91 {  computation_level++; 
+                    parsed_exp_low.push_back(-1);
+                    parsed_exp_high.push_back(-1);
+                    multiplicative_expression_var.push_back(-1);
+                    active_3ac = 1;
+                    } expression { computation_level--;
+                                  parsed_exp_low.pop_back();
+                                  parsed_exp_high.pop_back();
+                                  multiplicative_expression_var.pop_back();
+                                  parsed_exp_low[computation_level] = -1;
+                                } TOK_93	{ cout<<"t"<<temp_count<<" = "<<string($1)<<"--\n";
+                                          temp_count++;
+                                          hold = "*(t" + to_string(temp_count-1) + " + t" + to_string(temp_count-2) + " )";
+                                          cout<<"t"<<temp_count<<" = "<<hold<<"\n";
+                                          hold = "t" + to_string(temp_count);
+                                          temp_count++;
+                                          $$ = (char*)(hold.c_str());
                                         }
-                                        else rhs_type = "";}
 | primary_no_new_array TOK_91 expression TOK_93			
 ;
 method_invocation:
@@ -1382,7 +1425,10 @@ dim_expr:
    TOK_91 expression TOK_93			
 ;
 expression:
-  assignment_expression			
+  { computation_level++; 
+    parsed_exp_low.push_back(-1);
+    parsed_exp_high.push_back(-1);
+    multiplicative_expression_var.push_back(-1);}assignment_expression 	  
 ;
 assignment_expression:
   conditional_expression			
@@ -1391,8 +1437,12 @@ assignment_expression:
 assignment:
   left_hand_side assignment_operator { active_3ac = 1; }expression			{
                                                                           active_3ac = 0;
-                                                                          cout<<string($1)<<" = t"<<parsed_exp_low<<"\n";
-                                                                          parsed_exp_low = -1;
+                                                                          cout<<string($1)<<" = t"<<parsed_exp_low[computation_level]<<"\n";
+                                                                          computation_level--;
+                                                                          parsed_exp_low.pop_back();
+                                                                          parsed_exp_high.pop_back();
+                                                                          multiplicative_expression_var.pop_back();
+                                                                          parsed_exp_low[computation_level] = -1;
                                                                         }
 ;
 left_hand_side:
@@ -1445,29 +1495,29 @@ equality_expression:
 ;
 relational_expression:
   shift_expression			
-| relational_expression TOK_60 shift_expression			{//cout<<"testing: "<<lhs_type<<" "<<rhs_type<<"\n";
-                                                      if(lhs_type != rhs_type){
-                                                        cout<<"Error at line no "<<yylineno<<": "<<lhs_type<<" type cannot be compared with "<<rhs_type<<" type\n";
-                                                      }
-                                                      if(record_cond) cond_expr = string($1) + string($2) + string($3);
+|  relational_expression TOK_60 {active_3ac = 1;} shift_expression			{
+                                                      //if(record_cond) cond_expr = string($1) + string($2) + string($3);
+                                                      active_3ac = 0;
+                                                      cout<<"t"<<temp_count<<" = ("<<string($1)<<" < t"<<temp_count-1<<")\n";
+                                                      temp_count++;
                                                     }
-| relational_expression TOK_62 shift_expression			{//cout<<"testing: "<<lhs_type<<" "<<rhs_type<<"\n";
-                                                      if(lhs_type != rhs_type){
-                                                        cout<<"Error at line no "<<yylineno<<": "<<lhs_type<<" type cannot be compared with "<<rhs_type<<" type\n";
-                                                      }
-                                                      if(record_cond) cond_expr = string($1) + string($2) + string($3);
+| relational_expression TOK_62 {active_3ac = 1;} shift_expression			{
+                                                      //if(record_cond) cond_expr = string($1) + string($2) + string($3);
+                                                      active_3ac = 0;
+                                                      cout<<"t"<<temp_count<<" = ("<<string($1)<<" > t"<<temp_count-1<<")\n";
+                                                      temp_count++;
                                                     }
-| relational_expression TOK_6061 shift_expression		{//cout<<"testing: "<<lhs_type<<" "<<rhs_type<<"\n";
-                                                      if(lhs_type != rhs_type){
-                                                        cout<<"Error at line no "<<yylineno<<": "<<lhs_type<<" type cannot be compared with "<<rhs_type<<" type\n";
-                                                      }
-                                                      if(record_cond) cond_expr = string($1) + string($2) + string($3);
+| relational_expression TOK_6061 {active_3ac = 1;} shift_expression		{
+                                                      //if(record_cond) cond_expr = string($1) + string($2) + string($3);
+                                                      active_3ac = 0;
+                                                      cout<<"t"<<temp_count<<" = ("<<string($1)<<" <= t"<<temp_count-1<<")\n";
+                                                      temp_count++;
                                                     }
-| relational_expression TOK_6261 shift_expression		{//cout<<"testing: "<<lhs_type<<" "<<rhs_type<<"\n";
-                                                      if(lhs_type != rhs_type){
-                                                        cout<<"Error at line no "<<yylineno<<": "<<lhs_type<<" type cannot be compared with "<<rhs_type<<" type\n";
-                                                      }
-                                                      if(record_cond) cond_expr = string($1) + string($2) + string($3);
+| relational_expression TOK_6261 {active_3ac = 1;} shift_expression		{
+                                                      //if(record_cond) cond_expr = string($1) + string($2) + string($3);
+                                                      active_3ac = 0;
+                                                      cout<<"t"<<temp_count<<" = ("<<string($1)<<" >= t"<<temp_count-1<<")\n";
+                                                      temp_count++;
                                                     }
 | instanceof_expression			
 ;
@@ -1483,74 +1533,87 @@ shift_expression:
 ;
 additive_expression:
   multiplicative_expression		   	                        { if(active_3ac){
-                                                              parsed_exp_low = temp_count-1;
-                                                              multiplicative_expression_var = -1;
-                                                              parsed_exp_high = -1;
+                                                              parsed_exp_low[computation_level] = temp_count-1;
+                                                              multiplicative_expression_var[computation_level] = -1;
+                                                              parsed_exp_high[computation_level] = -1;
                                                             }
                                                           }
 | additive_expression TOK_43 multiplicative_expression	  { if(active_3ac){
-                                                              cout<<"t"<<temp_count<<" = t"<<multiplicative_expression_var<<"\n";
-                                                              cout<<"t"<<temp_count+1<<" = t"<<temp_count<<" + t"<<parsed_exp_low<<"\n";
+                                                              cout<<"t"<<temp_count<<" = t"<<multiplicative_expression_var[computation_level]<<"\n";
+                                                              cout<<"t"<<temp_count+1<<" = t"<<temp_count<<" + t"<<parsed_exp_low[computation_level]<<"\n";
                                                               temp_count+=2;
-                                                              parsed_exp_low = temp_count-1;
+                                                              parsed_exp_low[computation_level] = temp_count-1;
 
-                                                              multiplicative_expression_var = -1;
-                                                              parsed_exp_high = -1;
+                                                              multiplicative_expression_var[computation_level] = -1;
+                                                              parsed_exp_high[computation_level] = -1;
                                                             }
                                                           }		
 | additive_expression TOK_45 multiplicative_expression		{ if(active_3ac){
-                                                              cout<<"t"<<temp_count<<" = t"<<multiplicative_expression_var<<"\n";
-                                                              cout<<"t"<<temp_count+1<<" = t"<<parsed_exp_low<<" - t"<<temp_count<<"\n";
+                                                              cout<<"t"<<temp_count<<" = t"<<multiplicative_expression_var[computation_level]<<"\n";
+                                                              cout<<"t"<<temp_count+1<<" = t"<<parsed_exp_low[computation_level]<<" - t"<<temp_count<<"\n";
                                                               temp_count+=2;
-                                                              parsed_exp_low = temp_count-1;
+                                                              parsed_exp_low[computation_level] = temp_count-1;
 
-                                                              multiplicative_expression_var = -1;
-                                                              parsed_exp_high = -1;
+                                                              multiplicative_expression_var[computation_level] = -1;
+                                                              parsed_exp_high[computation_level] = -1;
                                                             }
                                                           }
 ;
 multiplicative_expression:
-  unary_expression			                                  { if(active_3ac){
-                                                              cout<<"t"<<temp_count<<" = "<<string($1)<<"\n";
-                                                              multiplicative_expression_var = temp_count;
-                                                              temp_count++;
+  unary_expression			                                  {
+                                                            if(active_3ac){
+                                                              if(subexpression_flag == 1){
+                                                                subexpression_flag = 0;
+                                                                computation_level--;
+                                                                parsed_exp_low.pop_back();
+                                                                parsed_exp_high.pop_back();
+                                                                multiplicative_expression_var.pop_back();
+                                                                multiplicative_expression_var[computation_level] = temp_count - 1;
+                                                              }
+                                                              else{
+                                                                cout<<"t"<<temp_count<<" = "<<string($1)<<"\n";
+                                                                multiplicative_expression_var[computation_level] = temp_count;
+                                                                temp_count++;
+                                                              }
                                                             }
                                                           }
 | multiplicative_expression TOK_42 unary_expression			  { if(active_3ac){
                                                               cout<<"t"<<temp_count<<" = "<<string($3)<<"\n";
-                                                              if(parsed_exp_high == -1) parsed_exp_high = multiplicative_expression_var;
-                                                              cout<<"t"<<temp_count+1<<" = t"<<temp_count<<" * t"<<parsed_exp_high<<"\n";
+                                                              if(parsed_exp_high[computation_level] == -1) parsed_exp_high[computation_level] = multiplicative_expression_var[computation_level];
+                                                              cout<<"t"<<temp_count+1<<" = t"<<parsed_exp_high[computation_level]<<" * t"<<temp_count<<"\n";
                                                               temp_count+=2;
-                                                              parsed_exp_high = temp_count-1;
+                                                              parsed_exp_high[computation_level] = temp_count-1;
 
                                                               // If controle transfers to additive expression then no worry because of this
-                                                              multiplicative_expression_var = parsed_exp_high;
+                                                              multiplicative_expression_var[computation_level] = parsed_exp_high[computation_level];
                                                             }
                                                           }
 | multiplicative_expression TOK_47 unary_expression			  { if(active_3ac){
-                                                              cout<<"t"<<temp_count<<" = t"<<string($3)<<"\n";
-                                                              if(parsed_exp_high == -1) parsed_exp_high = multiplicative_expression_var;
-                                                              cout<<"t"<<temp_count+1<<" = t"<<temp_count<<" / t"<<parsed_exp_high<<"\n";
+                                                              cout<<"t"<<temp_count<<" = "<<string($3)<<"\n";
+                                                              if(parsed_exp_high[computation_level] == -1) parsed_exp_high[computation_level] = multiplicative_expression_var[computation_level];
+                                                              cout<<"t"<<temp_count+1<<" = t"<<parsed_exp_high[computation_level]<<" / t"<<temp_count<<"\n";
                                                               temp_count+=2;
-                                                              parsed_exp_high = temp_count-1;
-                                                              multiplicative_expression_var = parsed_exp_high;
+                                                              parsed_exp_high[computation_level] = temp_count-1;
+
+                                                              // If controle transfers to additive expression then no worry because of this
+                                                              multiplicative_expression_var[computation_level] = parsed_exp_high[computation_level];
                                                             }
                                                           }
 | multiplicative_expression TOK_37 unary_expression			  { if(active_3ac){
                                                               cout<<"t"<<temp_count<<" = t"<<string($3)<<"\n";
-                                                              if(parsed_exp_high == -1) parsed_exp_high = multiplicative_expression_var;
-                                                              cout<<"t"<<temp_count+1<<" = t"<<temp_count<<" \% t"<<parsed_exp_high<<"\n";
+                                                              if(parsed_exp_high[computation_level] == -1) parsed_exp_high[computation_level] = multiplicative_expression_var[computation_level];
+                                                              cout<<"t"<<temp_count+1<<" = t"<<parsed_exp_high[computation_level]<<" % t"<<temp_count<<"\n";
                                                               temp_count+=2;
-                                                              parsed_exp_high = temp_count-1;
-                                                              multiplicative_expression_var = parsed_exp_high;
+                                                              parsed_exp_high[computation_level] = temp_count-1;
+                                                              multiplicative_expression_var[computation_level] = parsed_exp_high[computation_level];
                                                             }
                                                           }
 ;
 unary_expression:
   pre_increment_expression			
 | pre_decrement_expression			
-| TOK_43 unary_expression			
-| TOK_45 unary_expression			
+| TOK_43 unary_expression			{ /* merge and pass to $$ */ }
+| TOK_45 unary_expression			{ /* merge and pass to $$ */ }
 | unary_expression_not_plus_minus			
 ;
 pre_increment_expression:
@@ -1571,10 +1634,20 @@ postfix_expression:
 | post_decrement_expression			
 ;
 post_increment_expression:
-  postfix_expression TOK_4343			
+  postfix_expression TOK_4343		{cout<<"t"<<temp_count<<" = "<<string($1)<<"\n";
+                                  temp_count++;
+                                  cout<<"t"<<temp_count<<" = t"<<temp_count-1<<" + 1\n";
+                                  cout<<string($1)<<" = t"<<temp_count<<"\n";
+                                  temp_count++;
+                                }	
 ;
 post_decrement_expression:
-  postfix_expression TOK_4545			
+  postfix_expression TOK_4545		{cout<<"t"<<temp_count<<" = "<<string($1)<<"\n";
+                                  temp_count++;
+                                  cout<<"t"<<temp_count<<" = t"<<temp_count-1<<" - 1\n";
+                                  cout<<string($1)<<" = t"<<temp_count<<"\n";
+                                  temp_count++;
+                                }	
 ;
 cast_expression:
   TOK_40 primitive_type TOK_41 unary_expression			

@@ -167,7 +167,7 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 56 "grammer.y"
+#line 74 "grammer.y"
 
   char* s;
   int i;
@@ -186,7 +186,7 @@ typedef union YYSTYPE YYSTYPE;
 int yyparse (void);
 
 /* "%code provides" blocks.  */
-#line 51 "grammer.y"
+#line 69 "grammer.y"
 
 void yyerror (char const*);
 int yylex (YYSTYPE*);
