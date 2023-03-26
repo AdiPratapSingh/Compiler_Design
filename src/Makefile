@@ -20,4 +20,4 @@ grammer.tab.c grammer.tab.h:	grammer.y
 		flex -o lex.yy.c scanner.l;bison -v -o grammer.tab.c -d grammer.y
 
 clean:
-	rm -f *.output *.c *.cc *.h *.png *.dot javacompiler
+	rm -f *.output *.c *.cc *.h *.png *.dot javacompiler newcompiler *.csv *.txt

@@ -212,10 +212,15 @@ Operator                    =|>|<|!|~|\?|\->|==|>=|<=|!=|&&|\|\||\+\+|\-\-|\+|\-
 "}"			{yylval->s=strdup(yytext);return TOK_125;}
 "~"			{yylval->s=strdup(yytext);return TOK_126;}
 
-{NumericLiteral}       {yylval->s = strdup(yytext);return TOK_NUMERICLITERAL;}
-{NonNumericLiteral}       {yylval->s = strdup(yytext);return TOK_NONNUMERICLITERAL;}
-{Identifier}    {yylval->s = strdup(yytext);return TOK_IDENTIFIER;}
-.               {;}
+{IntegerLiteral}            {yylval->s=strdup(yytext);return TOK_INTEGERLITERAL;}
+{FloatingPointLiteral}      {yylval->s=strdup(yytext);return TOK_FLOATLITERAL;}
+{BooleanLiteral}            {yylval->s=strdup(yytext);return TOK_BOOLEANLITERAL;}
+{CharacterLiteral}          {yylval->s=strdup(yytext);return TOK_CHARLITERAL;}
+{StringLiteral}             {yylval->s=strdup(yytext);return TOK_STRINGLITERAL;}
+{TextBlock}                 {yylval->s=strdup(yytext);return TOK_TEXTBLOCKLITERAL;}
+{NullLiteral}               {yylval->s=strdup(yytext);return TOK_NULLLITERAL;}
+{Identifier}                {yylval->s=strdup(yytext);return TOK_IDENTIFIER;}
+.                           {;}
 %%
 
 

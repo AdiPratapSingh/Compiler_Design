@@ -1,26 +1,22 @@
 public class SyntaxCheck {
-    public static void main(String[] args) {
-        int a;
-        a = 5;
-        a++;
-        printFunc(a);
-
-        float b = 3.14f; // Default to a float type
-        printFunc(b);
-
-        long val = 100L;
-        printFunc(val);
-    }
-
     static void printFunc(float val) {
-        System.out.println(val);
+        int a = val + 5;
     }
 
-    static void printFunc(int val) {
-        System.out.println(val);
-    }
-
-    static void printFunc(long val) {
-        System.out.println(val);
+    public static void main() {
+        int a;
+        a = 10;
+        boolean f;
+        f = true || false;
+        if (f) {
+            int k;
+            k = a + 20;
+            a = 2*a + 12;
+        }
+        printFunc(a);
+        while (a < 100) {
+            a = a + 1;
+            f = f && false;
+        }
     }
 }

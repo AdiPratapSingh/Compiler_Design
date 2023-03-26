@@ -1,2 +1,4 @@
 ./src/*.c
 ./src/*.h
+./src/javacompiler
+./src/*.csv

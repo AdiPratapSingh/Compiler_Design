@@ -1,20 +1,26 @@
-import java.io.*;
- 
-class GFG {
-  static int getNoOfWays(int n)
-  {
- 
-    // Base case
-    if (n <= 2) {
-      return n;
+// interface
+interface Drawable {
+    void draw();
+    static int cube(int x) {
+        return x*x*x;
     }
-    return getNoOfWays(n - 1) + getNoOfWays(n - 2);
-  }
- 
-  // Driver Function
-  public static void main(String[] args)
-  {
-    System.out.println(getNoOfWays(4));
-    System.out.println(getNoOfWays(3));
-  }
+
+    // nested interface
+    interface MessagePrintable{  
+        void msg();  
+    }
+}
+
+class Rectangle implements Drawable {
+    public void draw() {
+        System.out.println("drawing rectangle");
+    }
+}
+
+class TestInterfaceStatic {
+    public static void main(String args[]) {
+        Drawable d;
+        d.draw();
+        System.out.println(Drawable.cube(3));
+    }
 }

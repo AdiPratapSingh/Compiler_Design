@@ -12,7 +12,7 @@ for (( i=0;i<$ELEMENTS;i++)); do
     if [ ${arg:0:1} == '-' ]; then
         if [ ${arg:1:1} == 'h' ]; then
             echo "The correct usage is as follows :";
-            echo ".\myASTGenerator -input=input.java -output=output.dot -verbose"
+            echo ".\run -input=input.java -output=output.dot -verbose"
             exit 0
         fi
         if [ ${arg:1:1} = 'i' ]; then
@@ -39,10 +39,16 @@ fi
 # echo $input
 # echo $output
 
-./javacompiler $input
-./newcompiler $input
-mv out.dot $output
+# while we get Segmentation fault (core dumped), try running the following command
 
-dot -Tpng -o image.png $output
+while true
+do
+  ./newcompiler $input
+  if [ $? -ne 0 ]; then
+    clear;
+  else
+    break
+  fi
+done
 
 rm -f *.output

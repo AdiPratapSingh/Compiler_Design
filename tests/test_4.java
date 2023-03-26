@@ -1,16 +1,15 @@
-// Generic
-class Test<T> {
-	
-
-}
 class Main {
 	public static void main(String[] args)
 	{
-		Test<Integer> iObj = new Test<Integer>(15);
-		System.out.println(iObj.getObject());
-
-		Test<String> sObj
-			= new Test<String>("GeeksForGeeks");
-		System.out.println(sObj.getObject());
+		int a, b;
+		float c;
+		char d;
+		boolean e;
+		if (a > b) {
+			a = a + b * a + b;
+		}
+		if (a + 15) {
+			a = a + b * a + b;
+		}
 	}
 }
